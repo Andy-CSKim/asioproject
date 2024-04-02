@@ -18,6 +18,8 @@ using boost::asio::ip::tcp;
 
 const int max_length = 1024;
 
+int gCount = 0;
+
 void session(tcp::socket sock)
 {
   try
@@ -28,12 +30,24 @@ void session(tcp::socket sock)
 
       boost::system::error_code error;
       size_t length = sock.read_some(boost::asio::buffer(data), error);
+
+      // andy : print data
+      gCount++;
+      std::cout << "rxed data(" << gCount<< "): "<< data << std::endl;
+
+      // conver to upper case
+      for (int i = 0; i < length; i++) {
+        data[i] = std::toupper(data[i]);
+      }
+
       if (error == boost::asio::error::eof)
         break; // Connection closed cleanly by peer.
       else if (error)
         throw boost::system::system_error(error); // Some other error.
 
       boost::asio::write(sock, boost::asio::buffer(data, length));
+      // andy : print data
+      std::cout << "txed data(" << gCount<< "): "<< data << std::endl;      
     }
   }
   catch (std::exception& e)
@@ -63,7 +77,11 @@ int main(int argc, char* argv[])
 
     boost::asio::io_context io_context;
 
+    // andy
+    std::cout << "before server" << std::endl;
     server(io_context, std::atoi(argv[1]));
+    // andy
+    std::cout << "after server" << std::endl;
   }
   catch (std::exception& e)
   {

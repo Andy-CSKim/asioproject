@@ -27,21 +27,52 @@ public:
 
   void start()
   {
+    std::cout<< "start" << std::endl;
     do_read();
   }
 
 private:
+  int nCount = 0;
+  // std::atomic<bool> bStop;
+  bool bStop = false;
+
   void do_read()
   {
+    bStop = false;
+    // bStop.store(false);
     auto self(shared_from_this());
     socket_.async_read_some(boost::asio::buffer(data_, max_length),
         [this, self](boost::system::error_code ec, std::size_t length)
+        // [&](boost::system::error_code ec, std::size_t length)
         {
           if (!ec)
           {
+            // andy : print data
+            // std::cout << "rxed data(" << length<< "): "<< data_ << std::endl;
+            bStop = true;
+            // bStop.store(true);
+            //nCount++;
+            std::cout << "rxed data(" << nCount<< " , bStop: " << bStop <<"): "<< data_ << std::endl;
+
+            // conver to upper case
+            for (int i = 0; i < length; i++) {
+              data_[i] = std::toupper(data_[i]);
+            }
+
             do_write(length);
           }
         });
+    
+    // while (!bStop) {
+    //   nCount++;
+    //   if (nCount % 1000000 == 0) {
+    //     std::cout << "nCount(loop): " << nCount << std::endl;
+    //   }
+    //   bStop.load();
+    // }
+    // print bStop and nCount
+    std::cout << "bStop: " << bStop << ", nCount: " << nCount << std::endl;
+    
   }
 
   void do_write(std::size_t length)
@@ -49,9 +80,13 @@ private:
     auto self(shared_from_this());
     boost::asio::async_write(socket_, boost::asio::buffer(data_, length),
         [this, self](boost::system::error_code ec, std::size_t /*length*/)
+        // [&](boost::system::error_code ec, std::size_t /*length*/)
         {
           if (!ec)
           {
+            // andy : print data
+            // std::cout << "txed data(" << length<< "): "<< data_ << std::endl;
+            std::cout << "txed data(" << nCount<< "): "<< data_ << std::endl;
             do_read();
           }
         });
@@ -82,6 +117,7 @@ private:
             std::make_shared<session>(std::move(socket))->start();
           }
 
+          std::cout << "do_accept" << std::endl;
           do_accept();
         });
   }
@@ -101,9 +137,13 @@ int main(int argc, char* argv[])
 
     boost::asio::io_context io_context;
 
+    // andy
+    std::cout << "before server" << std::endl;
     server s(io_context, std::atoi(argv[1]));
 
-    io_context.run();
+    io_context.run();    // andy
+    std::cout << "after server" << std::endl;
+
   }
   catch (std::exception& e)
   {

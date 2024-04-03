@@ -13,6 +13,7 @@
 #include <memory>
 #include <utility>
 #include <boost/asio.hpp>
+#include <boost/thread.hpp>
 
 using boost::asio::ip::tcp;
 
@@ -36,6 +37,20 @@ private:
   // std::atomic<bool> bStop;
   bool bStop = false;
 
+  int nValue = 0;
+
+  void do_loop() {
+    std::cout<< "do_loop" << std::endl;
+    while (!bStop) {
+      nCount++;
+      // if (nCount % 1000000 == 0) {
+      //   std::cout << "nCount(loop): " << nCount << std::endl;
+      // }
+      // bStop.load();
+    }
+    std::cout<< "== do_loop end ==" << std::endl;
+  }
+
   void do_read()
   {
     bStop = false;
@@ -50,9 +65,10 @@ private:
             // andy : print data
             // std::cout << "rxed data(" << length<< "): "<< data_ << std::endl;
             bStop = true;
+
             // bStop.store(true);
-            //nCount++;
-            std::cout << "rxed data(" << nCount<< " , bStop: " << bStop <<"): "<< data_ << std::endl;
+            // (Watch out) cout is not thread safe, so it may be interupted by other thread
+            std::cout << "read_some(" << nCount << "): " << data_ << std::endl;
 
             // conver to upper case
             for (int i = 0; i < length; i++) {
@@ -63,15 +79,18 @@ private:
           }
         });
     
-    // while (!bStop) {
-    //   nCount++;
-    //   if (nCount % 1000000 == 0) {
-    //     std::cout << "nCount(loop): " << nCount << std::endl;
-    //   }
-    //   bStop.load();
-    // }
+    // [this] () { }
+    // boost::thread t(&test_thread);
+
+    // boost::session s;
+    // s.do_loop();  --> boost::session::do_loop(session &s);
+
+    boost::thread t(&session::do_loop, this);
+    t.detach();
+    //t.join();   // what's the difference between join and detach?
+
     // print bStop and nCount
-    std::cout << "bStop: " << bStop << ", nCount: " << nCount << std::endl;
+    std::cout << " ==== do_read end ===="<< std::endl;
     
   }
 
@@ -86,7 +105,7 @@ private:
           {
             // andy : print data
             // std::cout << "txed data(" << length<< "): "<< data_ << std::endl;
-            std::cout << "txed data(" << nCount<< "): "<< data_ << std::endl;
+            std::cout << "txed data: "<< data_ << std::endl;
             do_read();
           }
         });
@@ -125,8 +144,21 @@ private:
   tcp::acceptor acceptor_;
 };
 
+void test_thread() {
+  int nCount = 0;
+  while (true) {
+    nCount++;
+    if (nCount % 1000000 == 0) {
+      std::cout << "nCount(thread): " << nCount << std::endl;
+    }
+  }
+}
+
 int main(int argc, char* argv[])
 {
+  // boost::thread t(&test_thread);
+  // t.join();
+
   try
   {
     if (argc != 2)
@@ -152,3 +184,18 @@ int main(int argc, char* argv[])
 
   return 0;
 }
+
+
+// class test {
+//   void do_loop() {}
+// }
+
+
+// class test t;
+
+// t.do_loop();  // --> test::do_loop(&t);
+// thread(&test::do_loop, &t);
+
+// void do_loop2() {}
+// thread(do_loop2);
+

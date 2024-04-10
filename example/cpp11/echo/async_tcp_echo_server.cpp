@@ -68,7 +68,7 @@ private:
 
             // bStop.store(true);
             // (Watch out) cout is not thread safe, so it may be interupted by other thread
-            std::cout << "read_some(" << nCount << "): " << data_ << std::endl;
+            std::cout << "(CB)read_some(" << nCount << "): " << data_ << std::endl;
 
             // conver to upper case
             for (int i = 0; i < length; i++) {
@@ -90,7 +90,7 @@ private:
     //t.join();   // what's the difference between join and detach?
 
     // print bStop and nCount
-    std::cout << " ==== do_read end ===="<< std::endl;
+    std::cout << " ==== End of sesseion::do_read() ===="<< std::endl;
     
   }
 
@@ -105,7 +105,7 @@ private:
           {
             // andy : print data
             // std::cout << "txed data(" << length<< "): "<< data_ << std::endl;
-            std::cout << "txed data: "<< data_ << std::endl;
+            std::cout << "(CB)txed data: "<< data_ << std::endl;
             do_read();
           }
         });
@@ -133,10 +133,13 @@ private:
         {
           if (!ec)
           {
+            tcp::endpoint remote_ep = socket.remote_endpoint();
+            std::cout << "remote_ep: " << remote_ep.address().to_string() << ":" << remote_ep.port() << std::endl;
+
             std::make_shared<session>(std::move(socket))->start();
           }
 
-          std::cout << "do_accept" << std::endl;
+          std::cout << "server::do_accept()" << std::endl;
           do_accept();
         });
   }
